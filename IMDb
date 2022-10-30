@@ -1,0 +1,320 @@
+/**********************************************************
+ * Program 4: IMDB
+ * Course: CS 141, Fall 2022
+ * System: MacOS using Clion
+ * Starter Code Author: Dr. Sara Riazi
+ * Student Author: Gabriela Ramirez
+ **********************************************************/
+
+
+
+#include <iostream>
+#include <cctype>
+#include <vector>
+#include <sstream>
+#include <fstream>
+#include <algorithm>
+
+using namespace std;
+
+//This code assigns data to members of a structure named movie
+struct movie {
+    string titleId;
+    string primaryTitle;
+    string startYear;
+    string genres;
+};
+//This code assigns data to members of a structure named actor
+struct actor {
+    string nameId;
+    string primaryName;
+    string birthYear;
+    string deathYear;
+    string primaryProfession;
+};
+//This code assigns data to members of a structure named principals
+struct principals {
+    string titleId;
+    string nameId;
+    string character;
+};
+
+/*********************************************** Helper functions ***************************************/
+
+//The splitString function takes a line and split it on the delimiter and push the parts into items
+void splitString(string line, char delimiter, vector<string>& items ) {
+    stringstream s_stream(line);
+    while (s_stream.good()) {
+        string item;
+        getline(s_stream, item, delimiter);
+        items.push_back(item);
+    }
+}
+//This function takes a string inputFile that’s coming from the string titlesFile (info about movies), located in the run function
+void createFile(string inputFile, vector <movie>&names){
+    ifstream inFs;
+    inFs.open(inputFile); //opens the file
+    vector <string> row; //vector represents each row
+    int i=0;
+    //Puts the titleId, primaryTitle, startYear and genres into rows using their indexes
+    if (inFs.is_open()){
+        string tempData = "";
+        while(getline(inFs, tempData)) {
+            splitString(tempData, '\t',row);
+            names.push_back(movie());
+            names[i].titleId= row[0];
+            names[i].primaryTitle = row [2];
+            names[i].startYear = row [5];
+            replace(row[8].begin(),row[8].end(),',',' ');
+            names[i].genres = row [8];
+            row.clear();
+            i++;
+        }
+        inFs.close();
+
+    }
+}
+//This function takes a string inputFile that’s coming from the string namesFile (info about actors/actresses, located
+//in the run function
+void actorFile(string inputFile, vector <actor>&names){
+    ifstream inFs;
+    inFs.open(inputFile); //opens the file
+    vector <string> row; //vector represents each row
+    int i=0;
+    //Puts the nameId, primaryName, birthYear, deathYear, and primaryProfession into rows using their indexes
+    if (inFs.is_open()){ //checks if the file opens
+        string tempData = "";
+        while(getline(inFs, tempData)) {
+            splitString(tempData, '\t',row);
+            names.push_back(actor());
+            names[i].nameId= row[0];
+            names[i].primaryName = row [1];
+            names[i].birthYear = row [2];
+            names[i].deathYear = row [3];
+            names[i].primaryProfession = row [4];
+            row.clear();
+            i++;
+        }
+        inFs.close();
+    }
+}
+
+//This function takes a string inputFile that’s coming from the string principalsFile (information that shows which
+//actor/actress plays a role in which movie), located in the run function
+void principalsList (string inputFile, vector <principals>&names){
+    ifstream inFs;
+    inFs.open(inputFile); //opens the file
+    vector <string> row; //vector represents each row
+    int i=0;
+    //Puts the titleId, nameId, and character into rows using their indexes
+    if (inFs.is_open()){ //checks if the file opens
+        string tempData = "";
+        while(getline(inFs, tempData)) {
+            splitString(tempData, '\t',row);
+            names.push_back(principals());
+            names[i].titleId= row[0];
+            names[i].nameId = row [2];
+            names[i].character = row [5];
+            row.clear();
+            i++;
+        }
+        inFs.close();
+    }
+}
+//In this function we are searching for the movies, and actors/actresses, including the character they played in the
+//movie, and we are passing the structs that have all the file information
+void linearSearch(vector<movie>&names, vector <actor>& list,vector <principals>&shows,string userPhrase) {
+    //Finding where the plus signs are located because the search phrases are separated with ‘+’
+    //Separating the strings into words but saving all of those words because we want to compare against the struct
+    //The code below uses string type (userInput) that saves each word that's in the user phrase as a variable in that vector
+    vector<string> userInput;
+    int pos0 = 0;
+    int pos1 = 0;
+    while (userPhrase.find("+", pos0) != string::npos) {
+        pos1 = userPhrase.find("+", pos0);
+        string temp = userPhrase.substr(pos0, pos1 - pos0);
+        userInput.push_back(temp);
+        pos0 = pos1 + 1;
+    }
+    string temp = userPhrase.substr(pos0, userPhrase.length() - 1);
+    userInput.push_back(temp);
+    //The user searches are in lower case
+    //For searching the movies the search is based on the primaryTitle
+    vector<movie> Matches;
+    for (int i = 0; i < names.size(); i++) {
+        int count = 0;
+        for (int j = 0; j < userInput.size(); j++) {
+            string temp = names[i].primaryTitle;
+            transform(temp.begin(), temp.end(), temp.begin(), ::tolower);
+            transform(userInput[j].begin(), userInput[j].end(), userInput[j].begin(), ::tolower);
+            if (temp.find(userInput[j]) != string::npos) {
+                count++;
+            }
+        }
+        if (count == userInput.size()) {
+            Matches.push_back(names[i]);
+        }
+    }
+    //If the vector that stores the matched items == 0, then no matches are found
+    if (Matches.size() == 0){
+        cout << "No match found!" << endl;
+        return;
+    }
+    //Looping through the matches vector in order to print out the numbers, primaryTitle, startYear, and genres
+    for (int i = 0; i < Matches.size(); i++) {
+        cout << i << ":" << endl;
+        cout << "Title: " << Matches[i].primaryTitle << endl;
+        cout << "Year: " << Matches[i].startYear << endl;
+        cout << "Genre: " << Matches[i].genres << endl;
+        cout << "---------------" << endl;
+    }
+    //The code below adds all the actors/actresses that match. User also selects a movie to see its actors and actresses
+    int selectMovie;
+    cout << "Select a movie to see its actors/actresses (-1 to go back to the previous menu)" << endl;
+    cin >> selectMovie;
+    if(selectMovie==-1)//User goes back to previous menu if they enter -1
+        return;
+        //The name of the actor/actress and the character they played in the movie gets printed out
+    else{
+        string movieId = Matches[selectMovie].titleId;
+        for(int i =0; i<shows.size(); i++){
+            if(shows[i].titleId==movieId){
+                for(int j =0; j<list.size(); j++){
+                    if(shows[i].character.find("\\N")== string::npos && list[j].nameId==shows[i].nameId){
+                        cout << list[j].primaryName << " ";
+                        break;
+                    }
+                }
+                if(shows[i].character.find("\\N")== string::npos){
+                    cout << shows[i].character << endl;
+                }
+            }
+        }
+    }
+}
+
+//In this function we are searching for actors/actresses, and we are passing the structs that have all the file information
+void actorSearch(vector<movie>&names, vector <actor>& list,vector <principals>&shows,string userPhrase) {
+    //Finding where the plus signs are located because the search phrases are separated with ‘+’
+    //Separating the strings into words but saving all of those words because we want to compare against the struct
+    //The code below uses string type (userInput) that saves each word that's in the user phrase as a variable in that vector
+    vector<string> userInput;
+    int pos0 = 0;
+    int pos1 = 0;
+    while (userPhrase.find("+", pos0) != string::npos) {
+        pos1 = userPhrase.find("+", pos0);
+        string temp = userPhrase.substr(pos0, pos1 - pos0);
+        userInput.push_back(temp);
+        pos0 = pos1 + 1;
+    }
+    string temp = userPhrase.substr(pos0, userPhrase.length() - 1);
+    userInput.push_back(temp);
+    //The user searches are in lower case
+    //For searching the movies the search is based on the primaryName
+    vector<actor> Matches;
+    for (int i = 0; i < list.size(); i++) {
+        int count = 0;
+        for (int j = 0; j < userInput.size(); j++) {
+            string temp = list[i].primaryName;
+            transform(temp.begin(), temp.end(), temp.begin(), ::tolower);
+            transform(userInput[j].begin(), userInput[j].end(), userInput[j].begin(), ::tolower);
+            if (temp.find(userInput[j]) != string::npos) {
+                count++;
+            }
+        }
+        if (count == userInput.size()) {
+            Matches.push_back(list[i]);
+        }
+    }
+    //Looping through the matches vector in order to print out the primaryName, primaryProfession, birthYear and deathYear
+    for (int i = 0; i < Matches.size(); i++) {
+        cout << i << ":" << endl;
+        cout << Matches[i].primaryName << endl;
+        cout << Matches[i].primaryProfession << endl;
+        cout << "(" << Matches[i].birthYear << "-" << Matches[i].deathYear << ")" << endl;
+    }
+    //If the vector that stores the matched items == 0, then no matches are found
+    if (Matches.size() == 0){
+        cout << "No match found!" << endl;
+        return;
+    }
+    //The code below adds all the movies that match. User also selects an actor/actress to see movies
+    int selectActor;
+    cout << "Select an actor/actress to see movies (-1 to go back to the previous menu)" << endl;
+    cin >> selectActor;
+    if(selectActor==-1) //User goes back to previous menu if they enter -1
+        return;
+    //The primary title, movie's start year, and the character played by the actor/actress gets printed out
+    else{
+        string movieId = Matches[selectActor].nameId;
+        for(int i =0; i<shows.size(); i++){
+            if(shows[i].nameId ==movieId){
+                for(int j =0; j<names.size(); j++){
+                    if( names[j].titleId==shows[i].titleId){
+                        cout << names[j].primaryTitle << " " << names[j].startYear << " " << shows[i].character << " " << endl;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+/**********************************************************************************************************/
+//This is the location of the strings that are taken by the files that contain info about movies,
+int run(string titlesFile, string namesFile, string principalsFile) {
+    vector <movie> names;
+    createFile(titlesFile, names );
+    vector <actor> list;
+    actorFile( namesFile, list);
+    vector <principals> shows;
+    principalsList(principalsFile, shows);
+
+    //The code below allows user to choose from one of the menu options, and enter a search phrase when searching for
+    //movies and actors/actresses
+    int usersChoice;
+    string userPhrase;
+    //This allows user to choose a menu option 1(search for movies), menu 2(search for actors/actresses, and menu 3 (Exit)
+    while(usersChoice!=3){
+        cout << "Select a menu option" << endl;
+        cout << "   1. Search for movies" << endl;
+        cout << "   2. Search for actors/actresses" << endl;
+        cout << "   3. Exit" << endl;
+        cout << "Your choice --> " << endl;
+        cin >> usersChoice;
+        //Exits the loop that reads the input
+        if(cin.fail()) {
+            break;
+        }
+        if(usersChoice==1){
+            cout << "Enter search phrase: " << endl;
+            cin >> userPhrase;
+            //Exits the loop that reads the input
+            if(cin.fail()) {
+                break;
+            }
+            linearSearch(names,list,shows,userPhrase);
+        }
+        if(usersChoice==2){
+            cout << "Enter search phrase: " << endl;
+            cin >> userPhrase;
+            //Exits the loop that reads the input
+            if(cin.fail()) {
+                break;
+            }
+            actorSearch(names,list,shows,userPhrase);
+        }
+    }
+    return 0;
+}
+
+int main() {
+    //Change these addresses according to your local machine
+    string titlesFile =	"movie.titles.tsv";
+    string namesFile = "movie.names.tsv";
+    string principalsFile = "movie.principals.tsv";
+
+    //DO NOT change the main function. The main function will be removed by the autograder
+    run(titlesFile, namesFile, principalsFile);
+    return 0;
+}
+
